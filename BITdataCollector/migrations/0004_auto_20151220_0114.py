@@ -7,13 +7,13 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('BITdataCollector', '0001_initial'),
+        ('BITdataCollector', '0003_auto_20151220_0109'),
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name='artist',
-            old_name='facebook_page_ulr',
-            new_name='facebook_page_url',
+        migrations.AlterField(
+            model_name='event',
+            name='on_sale_datetime',
+            field=models.DateTimeField(null=True),
         ),
     ]

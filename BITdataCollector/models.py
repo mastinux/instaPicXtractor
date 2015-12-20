@@ -1,20 +1,28 @@
 from django.db import models
 import json
+from django.utils import timezone
+from .bandsintown import Client
 
 
 class Artist(models.Model):
-    facebook_page_url = models.CharField(max_length=511)
+    facebook_page_url = models.CharField(max_length=511, null=True)
     upcoming_event_count = models.IntegerField(default=0)
     name = models.CharField(max_length=255)
     tracker_count = models.IntegerField(default=0)
     mbid = models.CharField(max_length=255, null=True)
     image_url = models.CharField(max_length=511)
-    facebook_tour_dates_url = models.CharField(max_length=511)
+    facebook_tour_dates_url = models.CharField(max_length=511, null=True)
     thumb_url = models.CharField(max_length=511)
 
     def __unicode__(self):
-        string = "%s [image_url:%s, upcoming_events=%s]" % (self.name, self.image_url, self.upcoming_event_count)
+        string = "Artist = %s [image_url:%s, upcoming_events=%s]" % (self.name, self.image_url, self.upcoming_event_count)
         return string
+
+    def exists(self):
+        if Artist.objects.filter(name=self.name):
+            return True
+        else:
+            return False
 
     def parse_data(self, a_json_obj):
         self.facebook_page_url = a_json_obj['facebook_page_url']
@@ -26,18 +34,53 @@ class Artist(models.Model):
         self.facebook_tour_dates_url = a_json_obj['facebook_tour_dates_url']
         self.thumb_url = a_json_obj['thumb_url']
 
+    @staticmethod
+    def find(artist_name):
+        client = Client('myappid')
+        result = client.get(artist_name)
+        return Artist.parse_data(result)
+
+    def get_event_by_date(self, search_date):
+        client = Client('myappid')
+        results = client.events(self.name, date=search_date)
+        event = Event()
+        events = list()
+        for result in results:
+            event.parse_and_save_data(result)
+            events.append(event)
+        return events
+
+    def get_events_by_dates_range(self, start_date, end_date):
+        client = Client('myappid')
+        dates_range = "%s,%s" % (start_date, end_date)
+        results = client.events(self.name, date=dates_range)
+        events = list()
+        for result in results:
+            event = Event()
+            event.parse_and_save_data(result)
+            events.append(event)
+        return events
+
 
 class Venue(models.Model):
     name = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
     country = models.CharField(max_length=255, null=True)
-    region = models.CharField
-    longitude = models.FloatField
-    latitude = models.FloatField
+    region = models.CharField(max_length=255, null=True)
+    longitude = models.FloatField(default=0)
+    latitude = models.FloatField(default=0)
 
     def __unicode__(self):
-        string = "%s [latitude:%s longitude:%s ]" % (self.name, self.latitude, self.longitude)
+        string = "Venue = %s [city:%s, country:%s, latitude:%f, longitude:%f]" % (self.name, self.city, self.country,
+                                                                                  self.latitude, self.longitude)
         return string
+
+    def exists(self):
+        result = Venue.objects.filter(name=self.name, longitude=self.longitude, latitude=self.latitude)
+        if result:
+            return True
+        else:
+            return False
 
     def parse_data(self, v_json_obj):
         #print v_json_obj
@@ -45,52 +88,72 @@ class Venue(models.Model):
         self.name = v_json_obj['name']
         self.country = v_json_obj['country']
         self.region = v_json_obj['region']
-        self.longitude = v_json_obj['longitude']
-        self.latitude = v_json_obj['latitude']
+        self.longitude = float(v_json_obj['longitude'])
+        self.latitude = float(v_json_obj['latitude'])
         #print self
 
 
 class Event(models.Model):
-    description = models.CharField(max_length=1023)
+    description = models.CharField(max_length=1023, null=True)
     title = models.CharField(max_length=511)
-    ticket_type = models.CharField(max_length=255)
+    ticket_type = models.CharField(max_length=255, null=True)
     venue = models.ForeignKey('Venue')
     facebook_rsvp_url = models.CharField(max_length=511)
-    ticket_url = models.CharField(max_length=511)
-    on_sale_datetime = models.DateTimeField
+    ticket_url = models.CharField(max_length=511, null=True)
+    on_sale_datetime = models.DateTimeField(null=True)
     formatted_datetime = models.CharField(max_length=255)
-    datetime = models.DateTimeField
+    datetime = models.DateTimeField()
     formatted_location = models.CharField(max_length=255)
     artists = models.ManyToManyField(Artist)
     ticket_status = models.CharField(max_length=255)
-    event_id = models.IntegerField
+    BIT_event_id = models.IntegerField()
 
-    def parse_data(self, e_json_obj):
+    def __unicode__(self):
+        string = "Event = %s [@%s, datetime:%s]" % (self.title, self.venue, self.datetime)
+        return string
+
+    #TODO : define exists method
+
+    def parse_and_save_data(self, e_json_obj):
         self.description = e_json_obj['description']
         self.title = e_json_obj['title']
         self.ticket_type = e_json_obj['ticket_type']
-
-        #checking venue
+        #extracting venue
         venue_json_obj = e_json_obj['venue']
         venue = Venue()
         venue.parse_data(venue_json_obj)
-        #TODO: improve DB check method
-        #TODO: problems checking latitude and longitude
-        results = Venue.objects.filter(name=venue.name, city=venue.city)
-        self.venue = results[0]
-
-        #TODO: continue developing
+        #checking venue
+        if not venue.exists():
+            venue.save()
+        else:
+            venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
+        #assigning venue
+        self.venue = venue
         self.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
         self.ticket_url = e_json_obj['ticket_url']
         self.on_sale_datetime = e_json_obj['on_sale_datetime']
         self.formatted_datetime = e_json_obj['formatted_datetime']
         self.datetime = e_json_obj['datetime']
         self.formatted_location = e_json_obj['formatted_location']
-        #TODO : check artists
-        self.artists = e_json_obj['artists']
         self.ticket_status = e_json_obj['ticket_status']
-        self.event_id = e_json_obj['id']
+        self.BIT_event_id = e_json_obj['id']
 
-    def __unicode__(self):
-        string = "%s [venue:%s, datetime:%s]" % (self.title, self.venue, self.datetime)
-        return string
+        #saving current instance in order to be able to realize many to many relation
+        self.save()
+
+        #extracting artists
+        e_json_artists = e_json_obj['artists']
+        artist = Artist()
+        artists = list()
+
+        for e_json_artist in e_json_artists:
+            artist_name = e_json_artist['name']
+            #searching in DB
+            artist = Artist.objects.filter(name=artist_name).first()
+            if not artist:
+                #searching on BIT
+                print "searching on BIT"
+                artist = Artist.find(artist_name)
+                artist.save()
+            #adding artist to event artists
+            self.artists.add(artist)
