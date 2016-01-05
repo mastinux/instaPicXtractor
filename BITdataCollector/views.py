@@ -3,4 +3,4 @@ from django.http import HttpResponse
 
 
 def index(request):
-    return HttpResponse("Hi, here the hell begins.")
+    return HttpResponse("Hi, you are in BITdataCollector.")

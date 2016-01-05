@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     #mastinux
     'BITdataCollector',
+    'instaPhotoCollector',
 )
 
 MIDDLEWARE_CLASSES = (

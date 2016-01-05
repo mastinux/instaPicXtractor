@@ -15,9 +15,11 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
-from BITdataCollector import urls as BIT_url
+from BITdataCollector import urls as BIT_urls
+from instaPhotoCollector import urls as iPC_urls
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^bitdatacollector/', include(BIT_url)),
+    url(r'^bitdatacollector/', include(BIT_urls)),
+    url(r'^instaphotocollector/', include(iPC_urls)),
 ]
