@@ -1,5 +1,4 @@
 from django.db import models
-import json
 from django.utils import timezone
 from .bandsintown import Client
 
@@ -18,7 +17,7 @@ class Artist(models.Model):
         string = "Artist = %s [image_url:%s, upcoming_events=%s]" % (self.name, self.image_url, self.upcoming_event_count)
         return string
 
-    def exists(self):
+    def is_stored(self):
         if Artist.objects.filter(name=self.name):
             return True
         else:
@@ -38,7 +37,9 @@ class Artist(models.Model):
     def find(artist_name):
         client = Client('myappid')
         result = client.get(artist_name)
-        return Artist.parse_data(result)
+        artist = Artist()
+        artist.parse_data(result)
+        return artist
 
     def get_event_by_date(self, search_date):
         client = Client('myappid')
@@ -61,6 +62,42 @@ class Artist(models.Model):
             events.append(event)
         return events
 
+    def get_event_by_location(self, location_name):
+        client = Client('myappid')
+        result = client.search(self.name, location=location_name)
+        event = Event()
+        event.parse_and_save_data(result[0])
+        return event
+
+    def get_event_by_location_and_radius(self, location_name, radius):
+        #maximum radius value : 241 km (150 miles)
+        client = Client('myappid')
+        result = client.search(self.name, location=location_name, radius=radius*0.621371)
+        event = Event()
+        event.parse_and_save_data(result[0])
+        return event
+
+    def get_recommended_events_by_location(self, location_name):
+        client = Client('myappid')
+        results = client.recommended(self.name, location=location_name)
+        events = list()
+        for result in results:
+            event = Event()
+            event.parse_and_save_data(result)
+            events.append(event)
+        return events
+
+    def get_recommended_events_by_location_and_radius(self, location_name, radius):
+        #maximum radius value : 241 km (150 miles)
+        client = Client('myappid')
+        results = client.recommended(self.name, location=location_name, radius=radius*0.621371)
+        events = list()
+        for result in results:
+            event = Event()
+            event.parse_and_save_data(result)
+            events.append(event)
+        return events
+
 
 class Venue(models.Model):
     name = models.CharField(max_length=255)
@@ -75,7 +112,7 @@ class Venue(models.Model):
                                                                                   self.latitude, self.longitude)
         return string
 
-    def exists(self):
+    def is_stored(self):
         result = Venue.objects.filter(name=self.name, longitude=self.longitude, latitude=self.latitude)
         if result:
             return True
@@ -112,7 +149,12 @@ class Event(models.Model):
         string = "Event = %s [@%s, datetime:%s]" % (self.title, self.venue, self.datetime)
         return string
 
-    #TODO : define exists method
+    def is_stored(self):
+        result = Event.objects.filter(BIT_event_id=self.BIT_event_id)
+        if result:
+            return True
+        else:
+            return False
 
     def parse_and_save_data(self, e_json_obj):
         self.description = e_json_obj['description']
@@ -123,7 +165,7 @@ class Event(models.Model):
         venue = Venue()
         venue.parse_data(venue_json_obj)
         #checking venue
-        if not venue.exists():
+        if not venue.is_stored():
             venue.save()
         else:
             venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
@@ -152,8 +194,10 @@ class Event(models.Model):
             artist = Artist.objects.filter(name=artist_name).first()
             if not artist:
                 #searching on BIT
-                print "searching on BIT"
                 artist = Artist.find(artist_name)
                 artist.save()
             #adding artist to event artists
             self.artists.add(artist)
+
+
+#https://github.com/jolbyandfriends/python-bandsintown
