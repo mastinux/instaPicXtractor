@@ -157,47 +157,51 @@ class Event(models.Model):
             return False
 
     def parse_and_save_data(self, e_json_obj):
-        self.description = e_json_obj['description']
-        self.title = e_json_obj['title']
-        self.ticket_type = e_json_obj['ticket_type']
-        #extracting venue
-        venue_json_obj = e_json_obj['venue']
-        venue = Venue()
-        venue.parse_data(venue_json_obj)
-        #checking venue
-        if not venue.is_stored():
-            venue.save()
+        DB_event = Event.objects.filter(BIT_event_id=e_json_obj['id'])
+        if not DB_event:
+            print 'saving event on DB'
+            self.description = e_json_obj['description']
+            self.title = e_json_obj['title']
+            self.ticket_type = e_json_obj['ticket_type']
+            #extracting venue
+            venue_json_obj = e_json_obj['venue']
+            venue = Venue()
+            venue.parse_data(venue_json_obj)
+            #checking venue
+            if not venue.is_stored():
+                venue.save()
+            else:
+                venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
+            #assigning venue
+            self.venue = venue
+            self.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
+            self.ticket_url = e_json_obj['ticket_url']
+            self.on_sale_datetime = e_json_obj['on_sale_datetime']
+            self.formatted_datetime = e_json_obj['formatted_datetime']
+            self.datetime = e_json_obj['datetime']
+            self.formatted_location = e_json_obj['formatted_location']
+            self.ticket_status = e_json_obj['ticket_status']
+            self.BIT_event_id = e_json_obj['id']
+
+            #saving current instance in order to be able to realize many to many relation
+            self.save()
+
+            #extracting artists
+            e_json_artists = e_json_obj['artists']
+            artist = Artist()
+            artists = list()
+
+            for e_json_artist in e_json_artists:
+                artist_name = e_json_artist['name']
+                #searching in DB
+                artist = Artist.objects.filter(name=artist_name).first()
+                if not artist:
+                    #searching on BIT
+                    artist = Artist.find(artist_name)
+                    artist.save()
+                #adding artist to event artists
+                self.artists.add(artist)
         else:
-            venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
-        #assigning venue
-        self.venue = venue
-        self.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
-        self.ticket_url = e_json_obj['ticket_url']
-        self.on_sale_datetime = e_json_obj['on_sale_datetime']
-        self.formatted_datetime = e_json_obj['formatted_datetime']
-        self.datetime = e_json_obj['datetime']
-        self.formatted_location = e_json_obj['formatted_location']
-        self.ticket_status = e_json_obj['ticket_status']
-        self.BIT_event_id = e_json_obj['id']
+            print 'event already on DB'
 
-        #saving current instance in order to be able to realize many to many relation
-        self.save()
-
-        #extracting artists
-        e_json_artists = e_json_obj['artists']
-        artist = Artist()
-        artists = list()
-
-        for e_json_artist in e_json_artists:
-            artist_name = e_json_artist['name']
-            #searching in DB
-            artist = Artist.objects.filter(name=artist_name).first()
-            if not artist:
-                #searching on BIT
-                artist = Artist.find(artist_name)
-                artist.save()
-            #adding artist to event artists
-            self.artists.add(artist)
-
-
-#https://github.com/jolbyandfriends/python-bandsintown
+# https://github.com/jolbyandfriends/python-bandsintown

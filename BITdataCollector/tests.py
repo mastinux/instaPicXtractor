@@ -3,7 +3,6 @@ from .bandsintown import Client
 from .models import *
 from django.utils.timezone import timedelta
 
-# Create your tests here.
 client = Client('myappid')
 artists_names = ['Usher', 'Cage the Elephant', 'Knife Party', 'Steve Aoki', 'Lady Gaga', 'The Weeknd']
 

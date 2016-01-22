@@ -1,0 +1,40 @@
+{% extends "instaPhotoCollector/base.html" %}
+
+{% block content %}
+
+    {% if artist_objects %}
+        <div class="container-fluid" xmlns="http://www.w3.org/1999/html">
+            <div class="row">
+            {% for artist in artist_objects %}
+                  <div class="col-sm-4 col-md-3">
+                        <div class="thumbnail">
+                              <img src="{{ artist.thumb_url }}" alt="...">
+                              {% comment %}<img src="{{ artist.thumb_url }}" alt="..."> {% endcomment %}
+                              <div class="caption">
+                                  <form action="{% url 'artist_view' %}" method="post">
+                                    {% csrf_token %}
+                                      <button type="button" class="btn btn-default btn-lg" name="artist_searched"
+                                            value="{{ artist.name }}">
+                                        <input class="default" type="submit" name="artist_name" value="{{ artist.name }}">
+                                      </button>
+                                  </form>
+                              {% comment %}
+
+                                {% if artist.upcoming_event_count %}
+                                    <p>upcoming events : {{ artist.upcoming_event_count }}</p>
+                                {% endif %}
+                                {% if artist.tracker_count %}
+                                    <p>traker count: {{ artist.tracker_count }}</p>
+                                {% endif %}
+                              {% endcomment %}
+                              </div>
+                        </div>
+                  </div>
+            {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <span class="label label-danger center-block">No artists found</span>
+    {% endif %}
+
+{% endblock %}

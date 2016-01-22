@@ -9,6 +9,7 @@
                   <div class="col-sm-4 col-md-3">
                     <div class="thumbnail">
                       <img src="{{ image.image_url }}" alt="...">
+                      {% comment %}
                       <div class="caption">
                         {% if image.location %}
                         <p>lat : {{ image.location.point.latitude }}</p>
@@ -26,6 +27,7 @@
                         {% endif %}
 
                       </div>
+                      {% endcomment %}
                     </div>
                   </div>
                   {% comment %}

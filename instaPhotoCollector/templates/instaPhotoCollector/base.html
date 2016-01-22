@@ -35,6 +35,9 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-nav navbar-right">
+              {% comment %}
+              <li><a href="{% url 'artists_view' %}">Artists</a></li>
+              {% endcomment %}
               <li>
                   <form class="navbar-form navbar-left" role="search" action="{% url 'location_view' %}" method="post">
                     {% csrf_token %}
