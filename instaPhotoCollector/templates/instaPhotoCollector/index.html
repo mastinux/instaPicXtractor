@@ -3,6 +3,8 @@
 {% block content %}
 
     {% if image_objects %}
+        <h1>{{ event_title }}</h1>
+
         <div class="container-fluid">
             <div class="row">
             {% for image in image_objects %}
@@ -40,6 +42,7 @@
             {% endfor %}
             </div>
         </div>
+
     {% else %}
         <span class="label label-danger center-block">No images found</span>
     {% endif %}

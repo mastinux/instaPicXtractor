@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from .bandsintown import Client
+from instaPhotoCollector.models import *
 
 
 class Artist(models.Model):
@@ -77,13 +78,14 @@ class Artist(models.Model):
         event.parse_and_save_data(result[0])
         return event
 
-    def get_recommended_events_by_location(self, location_name):
+    def get_recommended_events_by_location(self, location):
         client = Client('myappid')
-        results = client.recommended(self.name, location=location_name)
+        results = client.recommended(self.name, location=location, only_recs=True)
         events = list()
         for result in results:
-            event = Event()
-            event.parse_and_save_data(result)
+            #print "!!! RECOMMENDED EVENT !!!"
+            #print result
+            event = Event.parse_and_save_data(result)
             events.append(event)
         return events
 
@@ -147,6 +149,7 @@ class Event(models.Model):
 
     def __unicode__(self):
         string = "Event = %s [@%s, datetime:%s]" % (self.title, self.venue, self.datetime)
+
         return string
 
     def is_stored(self):
@@ -156,13 +159,16 @@ class Event(models.Model):
         else:
             return False
 
-    def parse_and_save_data(self, e_json_obj):
-        DB_event = Event.objects.filter(BIT_event_id=e_json_obj['id'])
-        if not DB_event:
-            print 'saving event on DB'
-            self.description = e_json_obj['description']
-            self.title = e_json_obj['title']
-            self.ticket_type = e_json_obj['ticket_type']
+    @staticmethod
+    def parse_and_save_data(e_json_obj):
+        #print e_json_obj
+        db_event = Event.objects.filter(BIT_event_id=e_json_obj['id'])
+        if not db_event:
+            #print 'log >>> saving event on DB'
+            event = Event()
+            event.description = e_json_obj['description']
+            event.title = e_json_obj['title']
+            event.ticket_type = e_json_obj['ticket_type']
             #extracting venue
             venue_json_obj = e_json_obj['venue']
             venue = Venue()
@@ -173,18 +179,18 @@ class Event(models.Model):
             else:
                 venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
             #assigning venue
-            self.venue = venue
-            self.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
-            self.ticket_url = e_json_obj['ticket_url']
-            self.on_sale_datetime = e_json_obj['on_sale_datetime']
-            self.formatted_datetime = e_json_obj['formatted_datetime']
-            self.datetime = e_json_obj['datetime']
-            self.formatted_location = e_json_obj['formatted_location']
-            self.ticket_status = e_json_obj['ticket_status']
-            self.BIT_event_id = e_json_obj['id']
+            event.venue = venue
+            event.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
+            event.ticket_url = e_json_obj['ticket_url']
+            event.on_sale_datetime = e_json_obj['on_sale_datetime']
+            event.formatted_datetime = e_json_obj['formatted_datetime']
+            event.datetime = e_json_obj['datetime']
+            event.formatted_location = e_json_obj['formatted_location']
+            event.ticket_status = e_json_obj['ticket_status']
+            event.BIT_event_id = e_json_obj['id']
 
             #saving current instance in order to be able to realize many to many relation
-            self.save()
+            event.save()
 
             #extracting artists
             e_json_artists = e_json_obj['artists']
@@ -200,8 +206,17 @@ class Event(models.Model):
                     artist = Artist.find(artist_name)
                     artist.save()
                 #adding artist to event artists
-                self.artists.add(artist)
+                event.artists.add(artist)
+            return event
         else:
-            print 'event already on DB'
+            """
+            for f in Event._meta.get_all_field_names():
+                print f
+                setattr(self, f, getattr(db_event, f))
+            """
+            print 'log >>> event already on DB'
+            return db_event
 
 # https://github.com/jolbyandfriends/python-bandsintown
+    def get_media_count(self):
+        return Media.objects.filter(event=self.id).count()

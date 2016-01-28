@@ -10,6 +10,7 @@ urlpatterns = [
     url(r'^popular', views.popular, name='popular_view'),
     url(r'^location', views.search_by_location, name='location_view'),
     url(r'^retrieve_artists', views.retrieve_artists, name='artists_view'),
-    url(r'^artist', views.explore_artist, name='artist_view'),
-    url(r'^event/([0-9]+)', views.explore_event, name='event_view'),
+    url(r'^retrieve_all_events_media', views.retrieve_all_events_media),
+    url(r'^artist/(?P<artist_name>[\w|\W]+)/(?P<page>[0-9]+)/$', views.explore_artist, name='artist_view'),
+    url(r'^event/(?P<event_id>[0-9]+)/(?P<page>[0-9]+)/$', views.explore_event, name='event_view'),
 ]

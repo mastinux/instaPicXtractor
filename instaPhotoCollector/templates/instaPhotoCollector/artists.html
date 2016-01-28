@@ -6,11 +6,16 @@
         <div class="container-fluid" xmlns="http://www.w3.org/1999/html">
             <div class="row">
             {% for artist in artist_objects %}
-                  <div class="col-sm-4 col-md-3">
+                  <div class="col-sm-3 col-md-2">
                         <div class="thumbnail">
-                              <img src="{{ artist.thumb_url }}" alt="...">
-                              {% comment %}<img src="{{ artist.thumb_url }}" alt="..."> {% endcomment %}
-                              <div class="caption">
+                            <a href="{% url 'artist_view' artist.name 1 %}">
+                                <img src="{{ artist.thumb_url }}" alt="...">
+                                <span class="label label-primary">{{ artist.name }}</span>
+                            </a>
+                            {% comment %}<img src="{{ artist.thumb_url }}" alt="..."> {% endcomment %}
+                            <div class="caption">
+
+                                {% comment %}
                                   <form action="{% url 'artist_view' %}" method="post">
                                     {% csrf_token %}
                                       <button type="button" class="btn btn-default btn-lg" name="artist_searched"
@@ -18,8 +23,8 @@
                                         <input class="default" type="submit" name="artist_name" value="{{ artist.name }}">
                                       </button>
                                   </form>
+                                {% endcomment %}
                               {% comment %}
-
                                 {% if artist.upcoming_event_count %}
                                     <p>upcoming events : {{ artist.upcoming_event_count }}</p>
                                 {% endif %}
@@ -27,7 +32,7 @@
                                     <p>traker count: {{ artist.tracker_count }}</p>
                                 {% endif %}
                               {% endcomment %}
-                              </div>
+                            </div>
                         </div>
                   </div>
             {% endfor %}

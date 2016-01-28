@@ -1,24 +1,96 @@
 {% extends "instaPhotoCollector/base.html" %}
 
 {% block content %}
-  <div class="col-lg-12">
+
     <div class="panel panel-info">
       <!-- Default panel contents -->
-      <div class="panel-heading">{{ artist_name }}</div>
+      <div class="panel-heading">
+          <h1>{{ artist_name }}</h1>
+      </div>
       <div class="panel-body">
           {% if artist_events %}
-          <div class="list-group">
-              {% for event in artist_events %}
-              <a href="{% url 'event_view' event.id %}" class="list-group-item">
-                  {{ event.title }}
-                  <span class="badge col-lg-2">{{ event.venue.name }}</span>
-                  <span class="badge col-lg-2">{{ event.datetime }}</span>
-              </a>
-              {% endfor %}
-          </div>
+              <div class="list-group">
+                  {% for event in artist_events %}
+                      {% if event.get_media_count > 20 %}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-success">
+                      {% elif event.get_media_count > 0%}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-info">
+                      {% else %}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-warning">
+                      {% endif %}
+                      {{ event.title }}
+                          <span class="badge col-lg-2">{{ event.venue.country }}</span>
+                          <span class="badge col-lg-2">{{ event.venue.city }}</span>
+                          <span class="badge col-lg-2">{{ event.datetime }}</span>
+                          <span class="badge">{{ event.get_media_count }}</span>
+                        </a>
+                  {% endfor %}
+              </div>
+
+                <nav>
+                  <ul class="pagination">
+                      {% if page|add:"0" == first_page|add:"0" %}
+                                  <li class="disabled">
+                      {% else %}
+                                  <li>
+                      {% endif %}
+                                  <a href="{% url 'artist_view' artist_name page|add:"-1" %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                  </a>
+                                </li>
+                      {% for i in range %}
+                          {% ifequal i|add:"0" page|add:"0"%}
+                              <li class="active">
+                          {% else %}
+                              <li>
+                          {% endifequal %}
+                                <a href="{% url 'artist_view' artist_name i %}">{{ i }}</a>
+                              </li>
+                      {% endfor %}
+
+                          {% if page|add:"0" == last_page|add:"0" %}
+                                      <li class="disabled">
+                          {% else %}
+                                      <li>
+                          {% endif %}
+                              <a href="{% url 'artist_view' artist_name page|add:"1" %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                              </a>
+                          </li>
+                  </ul>
+                </nav>
+          {% else %}
+              <span class="label label-default center-block">Sorry, no events for {{ artist_name }}</span>
           {% endif %}
       </div>
     </div>
-  </div>
 
+    {% if recommended_events %}
+    <div class="panel panel-info">
+      <!-- Default panel contents -->
+      <div class="panel-heading">
+          <h4>Recommended</h4>
+      </div>
+      <div class="panel-body">
+
+              <div class="list-group">
+                  {% for event in recommended_events %}
+                      {% if event.get_media_count > 20 %}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-success">
+                      {% elif event.get_media_count > 0 %}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-info">
+                      {% else %}
+                        <a href="{% url 'event_view' event.id 1 %}" class="list-group-item list-group-item-warning">
+                      {% endif %}
+                        {{ event.title }}
+                          <span class="badge col-lg-2">{{ event.venue.country }}</span>
+                          <span class="badge col-lg-2">{{ event.venue.city }}</span>
+                          <span class="badge col-lg-2">{{ event.datetime }}</span>
+                          <span class="badge">{{ event.get_media_count }}</span>
+                        </a>
+                  {% endfor %}
+              </div>
+      </div>
+    </div>
+    {% endif %}
 {% endblock %}

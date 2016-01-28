@@ -6,16 +6,19 @@ from django.utils import timezone
 import time
 from django.utils.timezone import timedelta
 from datetime import timedelta as std_timedelta
+from models import *
 # BITdataCollector modules
 from BITdataCollector.bandsintown import Client
 from BITdataCollector.models import *
 
-
 client = Client('myappid')
 
 
+EVENT_PER_PAGE = 7
+MEDIA_PER_PAGE = 20
+
+
 def index(request):
-    # todo : combine BITdataCollector with instaPhotoCollector
 
     return render(request, 'instaPhotoCollector/base.html')
 
@@ -29,18 +32,18 @@ def search(request):
 
         searched_tag = request.POST.get('searched_tag')
 
-        print ">>> tag searched", searched_tag
+        print ">>> searched tag", searched_tag
 
-        response = api.tag_recent_media(40, 0, searched_tag)
+        response = api.tag_recent_media(100, 0, searched_tag)
         media = response[0]
 
-        for medium in media:
+        for m in media:
             image = {}
             #for e in medium.__dict__:
             #    print e
             #for e in api.media(medium.id).__dict__:
             #    print e
-            image['image_url'] = medium.images['standard_resolution'].url
+            image['image_url'] = m.images['standard_resolution'].url
 
             image_objects.append(image)
 
@@ -54,13 +57,13 @@ def popular(request):
     api = InstagramAPI(client_id='f72f37aa491541a79412ce319f2e061f', client_secret='7dba20c9e90b4758b558088f9422cadd')
     image_objects = list()
 
-    media = api.media_popular(count=20)
-    for medium in media:
+    media = api.media_popular(count=100)
+    for m in media:
         image = {}
         #print "\n"
         #for e in medium.__dict__:
         #    print e
-        image['image_url'] = medium.images['standard_resolution'].url
+        image['image_url'] = m.images['standard_resolution'].url
 
         image_objects.append(image)
 
@@ -87,32 +90,32 @@ def search_by_location(request):
         end_epoch = int(time.mktime(end.timetuple()))
 
         # todo: understand what's first parameter for api.media_search()
-        media = api.media_search('', 20, lat, lng, start_epoch, end_epoch)
+        media = api.media_search('', 100, lat, lng, start_epoch, end_epoch)
 
-        for medium in media:
+        for m in media:
             image = {}
-            print "\n"
+            #print "\n"
             #for e in medium.__dict__:
             #    print e
-            #print medium.caption
-            print medium.location
-            image['location'] = medium.location
-            print medium.created_time
-            image['created_time'] = medium.created_time
-            #print medium.tags
-            image['tags'] = medium.tags
-            #print medium.comments
-            #print medium.filter
-            #print medium.comment_count
-            #print medium.like_count
-            #print medium.link
-            #print medium.likes
-            #print medium.images
-            #print medium.users_in_photo
-            #print medium.type
-            #print medium.id
-            #print medium.user
-            image['image_url'] = medium.images['standard_resolution'].url
+            #print m.caption
+            #print m.location
+            image['location'] = m.location
+            #print m.created_time
+            image['created_time'] = m.created_time
+            #print m.tags
+            image['tags'] = m.tags
+            #print m.comments
+            #print m.filter
+            #print m.comment_count
+            #print m.like_count
+            #print m.link
+            #print m.likes
+            #print m.images
+            #print m.users_in_photo
+            #print m.type
+            #print m.id
+            #print m.user
+            image['image_url'] = m.images['standard_resolution'].url
 
             image_objects.append(image)
 
@@ -123,60 +126,114 @@ def search_by_location(request):
 
 
 def retrieve_artists(request):
-    # todo : combine BITdataCollector with instaPhotoCollector
-    artists = ['Rae Sremmurd', 'James Bay', 'Hozier',
-               # 'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low', 'System of a Down',
-               # 'George Ezra',
-               'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap']
+    # todo : add description for number of events for each artist
     artist_objects = list()
     context = {}
+    """
+    artists = ['Rae Sremmurd', 'James Bay', 'Hozier',
+                'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low', 'System of a Down',
+                #'Eminem', 'Taylor Swift', 'Red Hot Chilli Peppers',
+                'Bruno Mars', 'Adele', 'Taylor Swift', 'Beyonce',  'Selena Gomez', 'Ariana Grande',
+                'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
+                'Katy Perry', 'Coldplay', 'Linkin Park', 'Maroon 5', 'Nicki Minaj', 'Lady Gaga']
 
-    DB_artists = Artist.objects.filter(name__in=artists)
-    for DB_artist in DB_artists:
+    db_artists = Artist.objects.filter(name__in=artists).order_by('name')
+    for DB_artist in db_artists:
         artist_objects.append(DB_artist)
         if artists.__contains__(DB_artist.name):
             artists.remove(DB_artist.name)
 
     for artist_name in artists:
+        print artist_name
         result = client.get(artist_name)
         artist = Artist()
         artist.parse_data(result)
         if not artist.is_stored():
             artist.save()
         artist_objects.append(artist)
+    """
+    for a in Artist.objects.all().order_by('name'):
+        artist_objects.append(a)
 
-    context = {
-        'artist_objects': artist_objects
-    }
+    context['artist_objects'] = artist_objects
 
     return render(request, 'instaPhotoCollector/artists.html', context)
 
 
-def explore_artist(request):
+def explore_artist(request, artist_name, page):
     context = {}
+    context['artist_name'] = artist_name
 
-    if request.method == 'POST':
-        artist_name = request.POST.get('artist_name')
-        context['artist_name'] = artist_name
-        artist = Artist.objects.get(name=artist_name)
+    artist = Artist.objects.get(name=artist_name)
 
-        # search events in last 30 days on BIT (stored automatically)
-        start = timezone.now() - timedelta(days=30)
-        end = timezone.now()
-        artist_events = artist.get_events_by_dates_range(start.date(), end.date())
+    # search events in last 6 months on BIT (stored automatically)
+    start = timezone.now() - timedelta(days=30*6)
+    end = timezone.now()
+    artist.get_events_by_dates_range(start.date(), end.date())
 
-        DB_artist_events = artist.event_set.all().order_by('-datetime')
+    db_artist_events = artist.event_set.filter(datetime__lt=timezone.now()).order_by('-datetime')
 
-        context['artist_events'] = DB_artist_events
+    number_of_element = db_artist_events.count()
+    if number_of_element > 0:
+        number_of_pages = number_of_element / EVENT_PER_PAGE
+        if number_of_element % EVENT_PER_PAGE != 0:
+            number_of_pages += 1
 
+        start_number = (int(page) - 1) * EVENT_PER_PAGE
+        end_number = int(page) * EVENT_PER_PAGE
+
+        context['artist_events'] = db_artist_events[start_number:end_number]
+        context['range'] = range(1, number_of_pages + 1)
+        context['first_page'] = 1
+        context['page'] = page
+        context['last_page'] = number_of_pages
+
+    # FIXME : remove a tag for -1 page when you are in first page and respectively for last page
+
+    # TODO : set recommended events search after user click
+    # FIXME : recommended events are future events, exploit artists of recommended events
+
+    # search recommended events on BIT (stored automatically)
+    """
+    recommended_events = list()
+    for db_artist_event in db_artist_events:
+        city = db_artist_event.venue.city
+        region = db_artist_event.venue.region
+        if not (city is None or "." in city or not city.isalpha()
+                or region is None or "." in region or not region.isalpha()):
+            location = city + "," + region
+            print location
+
+            # TODO : encapsulate BIT request in try structure
+            partial_recommended_events = artist.get_recommended_events_by_location(location)
+
+            if isinstance(partial_recommended_events, list):
+                print type(partial_recommended_events)
+                for e in partial_recommended_events:
+                    print type(e)
+                    for ee in e:
+                        print type(ee)
+                        print ee
+                        recommended_events.append(ee)
+            else:
+                print "TODO : analyze partial recommended events type"
+
+    if recommended_events:
+        context['recommended_events'] = recommended_events
+    else:
+        print "no recommended events found"
+    """
     return render(request, 'instaPhotoCollector/artist.html', context)
 
 
-def explore_event(request, event_id):
+def explore_event(request, event_id, page):
+    context = {}
     image_objects = list()
     retrieved_tags = list()
 
     event = Event.objects.get(id=event_id)
+
+    # todo : before making query, check database
 
     for e in event.title.replace(",", " ").replace("@", " ").split():
         retrieved_tags.append(e.lower())
@@ -189,29 +246,114 @@ def explore_event(request, event_id):
     lat = event.venue.latitude
     lng = event.venue.longitude
 
-    start = event.datetime - std_timedelta(hours=6)
-    end = event.datetime + std_timedelta(hours=6)
+    start = event.datetime - std_timedelta(hours=12)
+    end = event.datetime + std_timedelta(hours=12)
 
     start_epoch = int(time.mktime(start.timetuple()))
     end_epoch = int(time.mktime(end.timetuple()))
 
     # todo: understand what's first parameter for api.media_search()
-    media = api.media_search('', 500, lat, lng, start_epoch, end_epoch)
+    medias = api.media_search('', 1000, lat, lng, start_epoch, end_epoch)
 
-    for medium in media:
+    for media in medias:
         #if main_tag in [mt.name for mt in medium.tags]:
-            if [mt for mt in medium.tags if mt.name in retrieved_tags]:
-                # todo : save medium in database
-                image = {}
-                image['location'] = medium.location
-                image['created_time'] = medium.created_time
-                image['tags'] = medium.tags
-                image['image_url'] = medium.images['standard_resolution'].url
+            if [mt for mt in media.tags if mt.name in retrieved_tags]:
+                #print "\n", media.tags
+                db_media = Media.objects.filter(instagram_id=media.id)
+                if not db_media:
+                    media_object = Media()
+                    media_object.instagram_id = media.id
+                    media_object.std_resolution_url = media.images['standard_resolution'].url
+                    media_object.low_resolution_url = media.images['low_resolution'].url
+                    media_object.thumbnail_url = media.images['thumbnail'].url
+                    media_object.location = media.location
+                    if media.location.point:
+                        media_object.longitude = media.location.point.longitude
+                        media_object.latitude = media.location.point.latitude
+                    media_object.created_time = media.created_time
+                    media_object.like_count = media.like_count
+                    media_object.event = event_id
+                    media_object.save()
+                    #print media_object
 
-                image_objects.append(image)
+    event_medias = Media.objects.filter(event=event_id)
 
-    context = {
-        'image_objects': image_objects
-    }
+    number_of_element = event_medias.count()
+    #print number_of_element
+    number_of_pages = number_of_element / MEDIA_PER_PAGE
+    if number_of_element % MEDIA_PER_PAGE != 0:
+        number_of_pages += 1
+    #print number_of_pages
+    context['range'] = range(1, number_of_pages + 1)
 
-    return render(request, 'instaPhotoCollector/index.html', context)
+    start_number = (int(page) - 1) * MEDIA_PER_PAGE
+    end_number = int(page) * MEDIA_PER_PAGE
+
+    event_medias = event_medias[start_number:end_number]
+
+    for event_media in event_medias:
+        image = {}
+        #image['location'] = event_media.location
+        #image['created_time'] = event_media.created_time
+        image['image_url'] = event_media.std_resolution_url
+
+        image_objects.append(image)
+
+    context['event_id'] = event_id
+    context['event_title'] = event.title
+    context['image_objects'] = image_objects
+    context['first_page'] = 1
+    context['page'] = page
+    context['last_page'] = number_of_pages
+
+    return render(request, 'instaPhotoCollector/event.html', context)
+
+
+# todo : define view for events artist update
+
+def retrieve_all_events_media(request):
+    api = InstagramAPI(client_id='f72f37aa491541a79412ce319f2e061f',
+                       client_secret='7dba20c9e90b4758b558088f9422cadd')
+
+    for event in Event.objects.filter(datetime__lt=timezone.now()
+            #, id__gt=1086
+                                      ):
+        if not Media.objects.filter(event=event.id):
+            print "processing", event.title
+            retrieved_tags = list()
+
+            for e in event.title.replace(",", " ").replace("@", " ").split():
+                retrieved_tags.append(e.lower())
+
+            lat = event.venue.latitude
+            lng = event.venue.longitude
+
+            start = event.datetime - std_timedelta(hours=12)
+            end = event.datetime + std_timedelta(hours=12)
+
+            start_epoch = int(time.mktime(start.timetuple()))
+            end_epoch = int(time.mktime(end.timetuple()))
+
+            medias = api.media_search('', 1000, lat, lng, start_epoch, end_epoch)
+
+            for media in medias:
+                #if main_tag in [mt.name for mt in medium.tags]:
+                    if [mt for mt in media.tags if mt.name in retrieved_tags]:
+                        #print "\n", media.tags
+                        db_media = Media.objects.filter(instagram_id=media.id)
+                        if not db_media:
+                            media_object = Media()
+                            media_object.instagram_id = media.id
+                            media_object.std_resolution_url = media.images['standard_resolution'].url
+                            media_object.low_resolution_url = media.images['low_resolution'].url
+                            media_object.thumbnail_url = media.images['thumbnail'].url
+                            media_object.location = media.location
+                            if media.location.point:
+                                media_object.longitude = media.location.point.longitude
+                                media_object.latitude = media.location.point.latitude
+                            media_object.created_time = media.created_time
+                            media_object.like_count = media.like_count
+                            media_object.event = event.id
+                            media_object.save()
+
+    return render(request, 'instaPhotoCollector/index.html')

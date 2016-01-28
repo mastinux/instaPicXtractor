@@ -1,0 +1,113 @@
+{% extends "instaPhotoCollector/base.html" %}
+
+{% block content %}
+
+    {% if image_objects %}
+        <h1>{{ event_title }}</h1>
+        <nav>
+          <ul class="pagination">
+              {% if page|add:"0" == first_page|add:"0" %}
+                  <li class="disabled">
+              {% else %}
+                  <li>
+              {% endif %}
+                      <a href="{% url 'event_view' event_id page|add:"-1" %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                      </a>
+                  </li>
+              {% for i in range %}
+                  {% ifequal i|add:"0" page|add:"0"%}
+                      <li class="active">
+                  {% else %}
+                      <li>
+                  {% endifequal %}
+                        <a href="{% url 'event_view' event_id i %}">{{ i }}</a>
+                      </li>
+              {% endfor %}
+              {% if page|add:"0" == last_page|add:"0" %}
+                  <li class="disabled">
+              {% else %}
+                  <li>
+              {% endif %}
+                  <a href="{% url 'event_view' event_id page|add:"1" %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+              </li>
+          </ul>
+        </nav>
+
+        <div class="container-fluid">
+            <div class="row">
+            {% for image in image_objects %}
+                  <div class="col-sm-4 col-md-3">
+                    <div class="thumbnail">
+                      <img src="{{ image.image_url }}" alt="...">
+                      {% comment %}
+                      <div class="caption">
+                        {% if image.location %}
+                        <p>lat : {{ image.location.point.latitude }}</p>
+                        <p>lng : {{ image.location.point.longitude }}</p>
+                        {% endif %}
+                        {% if image.created_time %}
+                        <p>{{ image.created_time }}</p>
+                        {% endif %}
+                        {% if image.tags %}
+                        <p>tags :
+                            {% for tag in image.tags %}
+                                {{ tag.name }},
+                            {% endfor %}
+                        </p>
+                        {% endif %}
+
+                      </div>
+                      {% endcomment %}
+                    </div>
+                  </div>
+                  {% comment %}
+                  <div class="col-xs-6 col-md-3">
+                    <a href="#" class="thumbnail">
+                      <img src="{{ link }}" alt="...">
+                    </a>
+                  </div>
+                  {% endcomment %}
+            {% endfor %}
+            </div>
+        </div>
+
+        <nav>
+          <ul class="pagination">
+              {% if page|add:"0" == first_page|add:"0" %}
+                  <li class="disabled">
+              {% else %}
+                  <li>
+              {% endif %}
+                      <a href="{% url 'event_view' event_id page|add:"-1" %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                      </a>
+                  </li>
+              {% for i in range %}
+                  {% ifequal i|add:"0" page|add:"0"%}
+                      <li class="active">
+                  {% else %}
+                      <li>
+                  {% endifequal %}
+                        <a href="{% url 'event_view' event_id i %}">{{ i }}</a>
+                      </li>
+              {% endfor %}
+              {% if page|add:"0" == last_page|add:"0" %}
+                  <li class="disabled">
+              {% else %}
+                  <li>
+              {% endif %}
+                  <a href="{% url 'event_view' event_id page|add:"1" %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+              </li>
+          </ul>
+        </nav>
+
+    {% else %}
+        <span class="label label-danger center-block">No images found</span>
+    {% endif %}
+
+{% endblock %}
