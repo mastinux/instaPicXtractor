@@ -11,11 +11,22 @@ from models import *
 from BITdataCollector.bandsintown import Client
 from BITdataCollector.models import *
 
-client = Client('myappid')
+# todo : integrate photo_swipe
+# http://photoswipe.com/documentation/getting-started.html
+# compiled files are in static/photo_swipe/PhotoSwipe/dist
 
+client = Client('myappid')
 
 EVENT_PER_PAGE = 7
 MEDIA_PER_PAGE = 20
+
+interesting_artists = ['Rae Sremmurd', 'James Bay', 'Hozier',
+                       'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low', 'System of a Down',
+                       'Eminem', 'Taylor Swift', 'Red Hot Chilli Peppers',
+                       'Bruno Mars', 'Adele', 'Taylor Swift', 'Beyonce',  'Selena Gomez', 'Ariana Grande',
+                       'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
+                       'Katy Perry', 'Coldplay', 'Linkin Park', 'Maroon 5', 'Nicki Minaj', 'Lady Gaga',
+                       'Nobraino']
 
 
 def index(request):
@@ -129,31 +140,24 @@ def retrieve_artists(request):
     # todo : add description for number of events for each artist
     artist_objects = list()
     context = {}
-    """
-    artists = ['Rae Sremmurd', 'James Bay', 'Hozier',
-                'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low', 'System of a Down',
-                #'Eminem', 'Taylor Swift', 'Red Hot Chilli Peppers',
-                'Bruno Mars', 'Adele', 'Taylor Swift', 'Beyonce',  'Selena Gomez', 'Ariana Grande',
-                'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
-                'Katy Perry', 'Coldplay', 'Linkin Park', 'Maroon 5', 'Nicki Minaj', 'Lady Gaga']
 
-    db_artists = Artist.objects.filter(name__in=artists).order_by('name')
+    db_artists = Artist.objects.filter(name__in=interesting_artists).order_by('name')
+
     for DB_artist in db_artists:
         artist_objects.append(DB_artist)
-        if artists.__contains__(DB_artist.name):
-            artists.remove(DB_artist.name)
+        if interesting_artists.__contains__(DB_artist.name):
+            interesting_artists.remove(DB_artist.name)
 
-    for artist_name in artists:
-        print artist_name
+    for artist_name in interesting_artists:
         result = client.get(artist_name)
         artist = Artist()
         artist.parse_data(result)
         if not artist.is_stored():
             artist.save()
         artist_objects.append(artist)
-    """
-    for a in Artist.objects.all().order_by('name'):
-        artist_objects.append(a)
+
+    # for a in Artist.objects.all().order_by('name'):
+    #    artist_objects.append(a)
 
     context['artist_objects'] = artist_objects
 
@@ -187,8 +191,6 @@ def explore_artist(request, artist_name, page):
         context['first_page'] = 1
         context['page'] = page
         context['last_page'] = number_of_pages
-
-    # FIXME : remove a tag for -1 page when you are in first page and respectively for last page
 
     # TODO : set recommended events search after user click
     # FIXME : recommended events are future events, exploit artists of recommended events
@@ -309,17 +311,18 @@ def explore_event(request, event_id, page):
     return render(request, 'instaPhotoCollector/event.html', context)
 
 
-# todo : define view for events artist update
-
 def retrieve_all_events_media(request):
     api = InstagramAPI(client_id='f72f37aa491541a79412ce319f2e061f',
                        client_secret='7dba20c9e90b4758b558088f9422cadd')
 
-    for event in Event.objects.filter(datetime__lt=timezone.now()
+    artists = Artist.objects.filter(name__in=interesting_artists)
+    artists_ids = [a.id for a in artists]
+
+    for event in Event.objects.filter(datetime__lt=timezone.now(), artists__in=artists_ids
             #, id__gt=1086
                                       ):
         if not Media.objects.filter(event=event.id):
-            print "processing", event.title
+            print "log >>> processing", event.title
             retrieved_tags = list()
 
             for e in event.title.replace(",", " ").replace("@", " ").split():
@@ -328,8 +331,8 @@ def retrieve_all_events_media(request):
             lat = event.venue.latitude
             lng = event.venue.longitude
 
-            start = event.datetime - std_timedelta(hours=12)
-            end = event.datetime + std_timedelta(hours=12)
+            start = event.datetime - std_timedelta(hours=3)
+            end = event.datetime + std_timedelta(hours=15)
 
             start_epoch = int(time.mktime(start.timetuple()))
             end_epoch = int(time.mktime(end.timetuple()))
@@ -355,5 +358,18 @@ def retrieve_all_events_media(request):
                             media_object.like_count = media.like_count
                             media_object.event = event.id
                             media_object.save()
+
+    return render(request, 'instaPhotoCollector/index.html')
+
+
+def retrieve_all_artists_events(request):
+    artists = Artist.objects.all()
+    start = timezone.now() - timedelta(days=30)
+    end = timezone.now()
+
+    for a in artists:
+        print a
+        for e in a.get_events_by_dates_range(start.date(), end.date()):
+            print e.title
 
     return render(request, 'instaPhotoCollector/index.html')

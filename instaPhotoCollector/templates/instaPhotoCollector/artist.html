@@ -30,14 +30,17 @@
                 <nav>
                   <ul class="pagination">
                       {% if page|add:"0" == first_page|add:"0" %}
-                                  <li class="disabled">
+                          <li class="disabled">
+                            <span aria-hidden="true">&laquo;</span>
+                          </li>
                       {% else %}
-                                  <li>
+                          <li>
+                              <a href="{% url 'artist_view' artist_name page|add:"-1" %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                              </a>
+                          </li>
                       {% endif %}
-                                  <a href="{% url 'artist_view' artist_name page|add:"-1" %}" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
-                                  </a>
-                                </li>
+
                       {% for i in range %}
                           {% ifequal i|add:"0" page|add:"0"%}
                               <li class="active">
@@ -47,16 +50,17 @@
                                 <a href="{% url 'artist_view' artist_name i %}">{{ i }}</a>
                               </li>
                       {% endfor %}
-
                           {% if page|add:"0" == last_page|add:"0" %}
-                                      <li class="disabled">
+                            <li class="disabled">
+                                <span aria-hidden="true">&raquo;</span>
+                            </li>
                           {% else %}
-                                      <li>
-                          {% endif %}
+                            <li>
                               <a href="{% url 'artist_view' artist_name page|add:"1" %}" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                               </a>
-                          </li>
+                            </li>
+                          {% endif %}
                   </ul>
                 </nav>
           {% else %}
