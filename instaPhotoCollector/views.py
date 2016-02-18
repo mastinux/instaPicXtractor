@@ -20,13 +20,14 @@ client = Client('myappid')
 EVENT_PER_PAGE = 7
 MEDIA_PER_PAGE = 20
 
-interesting_artists = ['Rae Sremmurd', 'James Bay', 'Hozier',
-                       'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low', 'System of a Down',
-                       'Eminem', 'Taylor Swift', 'Red Hot Chilli Peppers',
-                       'Bruno Mars', 'Adele', 'Taylor Swift', 'Beyonce',  'Selena Gomez', 'Ariana Grande',
-                       'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
-                       'Katy Perry', 'Coldplay', 'Linkin Park', 'Maroon 5', 'Nicki Minaj', 'Lady Gaga',
-                       'Nobraino']
+interesting_artists = ['Katy Perry', 'Nobraino', 'Hozier', 'Maroon 5', 'Coldplay',
+                       #'Rae Sremmurd', 'James Bay', 'Lady Gaga',
+                       #'Years & Years', 'Mark Ronson', 'DAYA', 'Glass Animals', 'All Time Low',
+                       #'Bruno Mars', 'Adele', 'Taylor Swift', 'Beyonce',  'Selena Gomez', 'Ariana Grande',
+                       #'Eminem', 'Taylor Swift', 'Red Hot Chilli Peppers','System of a Down',
+                       #'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
+                       #'Linkin Park', 'Nicki Minaj'
+                       ]
 
 
 def index(request):
@@ -141,7 +142,9 @@ def retrieve_artists(request):
     artist_objects = list()
     context = {}
 
-    db_artists = Artist.objects.filter(name__in=interesting_artists).order_by('name')
+    local_interesting_artists = interesting_artists
+
+    db_artists = Artist.objects.filter(name__in=local_interesting_artists).order_by('name')
 
     for DB_artist in db_artists:
         artist_objects.append(DB_artist)
@@ -286,7 +289,6 @@ def explore_event(request, event_id, page):
     if number_of_element % MEDIA_PER_PAGE != 0:
         number_of_pages += 1
     #print number_of_pages
-    context['range'] = range(1, number_of_pages + 1)
 
     start_number = (int(page) - 1) * MEDIA_PER_PAGE
     end_number = int(page) * MEDIA_PER_PAGE
@@ -304,6 +306,8 @@ def explore_event(request, event_id, page):
     context['event_id'] = event_id
     context['event_title'] = event.title
     context['image_objects'] = image_objects
+
+    context['range'] = range(1, number_of_pages + 1)
     context['first_page'] = 1
     context['page'] = page
     context['last_page'] = number_of_pages
