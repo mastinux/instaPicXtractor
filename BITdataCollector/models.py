@@ -3,6 +3,9 @@ from django.utils import timezone
 from .bandsintown import Client
 from instaPhotoCollector.models import *
 
+client = client = Client('myappid')
+# https://github.com/jolbyandfriends/python-bandsintown
+
 
 class Artist(models.Model):
     facebook_page_url = models.CharField(max_length=511, null=True)
@@ -36,14 +39,12 @@ class Artist(models.Model):
 
     @staticmethod
     def find(artist_name):
-        client = Client('myappid')
         result = client.get(artist_name)
         artist = Artist()
         artist.parse_data(result)
         return artist
 
     def get_event_by_date(self, search_date):
-        client = Client('myappid')
         results = client.events(self.name, date=search_date)
         event = Event()
         events = list()
@@ -53,7 +54,6 @@ class Artist(models.Model):
         return events
 
     def get_events_by_dates_range(self, start_date, end_date):
-        client = Client('myappid')
         dates_range = "%s,%s" % (start_date, end_date)
         results = client.events(self.name, date=dates_range)
         events = list()
@@ -64,34 +64,30 @@ class Artist(models.Model):
         return events
 
     def get_event_by_location(self, location_name):
-        client = Client('myappid')
         result = client.search(self.name, location=location_name)
         event = Event()
         event.parse_and_save_data(result[0])
         return event
 
     def get_event_by_location_and_radius(self, location_name, radius):
-        #maximum radius value : 241 km (150 miles)
-        client = Client('myappid')
+        # maximum radius value : 241 km (150 miles)
         result = client.search(self.name, location=location_name, radius=radius*0.621371)
         event = Event()
         event.parse_and_save_data(result[0])
         return event
 
     def get_recommended_events_by_location(self, location):
-        client = Client('myappid')
         results = client.recommended(self.name, location=location, only_recs=True)
         events = list()
         for result in results:
-            #print "!!! RECOMMENDED EVENT !!!"
-            #print result
+            print " >>> !!! RECOMMENDED EVENT !!!"
+            print result
             event = Event.parse_and_save_data(result)
             events.append(event)
         return events
 
     def get_recommended_events_by_location_and_radius(self, location_name, radius):
-        #maximum radius value : 241 km (150 miles)
-        client = Client('myappid')
+        # maximum radius value : 241 km (150 miles)
         results = client.recommended(self.name, location=location_name, radius=radius*0.621371)
         events = list()
         for result in results:
@@ -169,16 +165,16 @@ class Event(models.Model):
             event.description = e_json_obj['description']
             event.title = e_json_obj['title']
             event.ticket_type = e_json_obj['ticket_type']
-            #extracting venue
+            # extracting venue
             venue_json_obj = e_json_obj['venue']
             venue = Venue()
             venue.parse_data(venue_json_obj)
-            #checking venue
+            # checking venue
             if not venue.is_stored():
                 venue.save()
             else:
                 venue = Venue.objects.filter(name=venue.name, longitude=venue.longitude, latitude=venue.latitude).first()
-            #assigning venue
+            # assigning venue
             event.venue = venue
             event.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
             event.ticket_url = e_json_obj['ticket_url']
@@ -189,23 +185,23 @@ class Event(models.Model):
             event.ticket_status = e_json_obj['ticket_status']
             event.BIT_event_id = e_json_obj['id']
 
-            #saving current instance in order to be able to realize many to many relation
+            # saving current instance in order to be able to realize many to many relation
             event.save()
 
-            #extracting artists
+            # extracting artists
             e_json_artists = e_json_obj['artists']
             artist = Artist()
             artists = list()
 
             for e_json_artist in e_json_artists:
                 artist_name = e_json_artist['name']
-                #searching in DB
+                # searching in DB
                 artist = Artist.objects.filter(name=artist_name).first()
                 if not artist:
-                    #searching on BIT
+                    # searching on BIT
                     artist = Artist.find(artist_name)
                     artist.save()
-                #adding artist to event artists
+                # adding artist to event artists
                 event.artists.add(artist)
             return event
         else:
@@ -217,6 +213,5 @@ class Event(models.Model):
             print 'log >>> event already on DB'
             return db_event
 
-# https://github.com/jolbyandfriends/python-bandsintown
     def get_media_count(self):
         return Media.objects.filter(event=self.id).count()
