@@ -22,7 +22,7 @@ class ArtistTestCase(TestCase):
         end = timezone.now()
 
         #TEST : search artist event by date [OK]
-        print artist.get_event_by_date(start.date())
+        print artist.get_events_by_date(start.date())
 
         #TEST : search artist events by dates range [OK]
         for e in artist.get_events_by_dates_range(start.date(), end.date()):
@@ -31,11 +31,11 @@ class ArtistTestCase(TestCase):
     def test_location_events_search(self):
         #TEST: search artist event by location [OK]
         artist = Artist.find('Madman')
-        print artist.get_event_by_location('Turin,IT')
+        print artist.get_events_by_location('Turin,IT')
 
         #TEST: search artist event by location and radius[OK]
         artist = Artist.find('Madman')
-        print artist.get_event_by_location_and_radius('Turin,IT', 240)
+        print artist.get_events_by_location_and_radius('Turin,IT', 240)
 
     def test_location_events_search(self):
         #TEST: search recommended events by location [OK]
