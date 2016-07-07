@@ -1,7 +1,11 @@
+import pytz
 from django.db import models
 from django.utils import timezone
+from datetime import datetime
 from .bandsintown import Client
 from instaPhotoCollector.models import *
+from googlemaps import Client as googleC, timezone as googleTZ
+from instaPicXtractor import keys
 
 client = client = Client('myappid')
 # https://github.com/jolbyandfriends/python-bandsintown
@@ -15,6 +19,43 @@ def parse_and_save_events(results):
         events.append(event)
 
     return events
+
+
+def get_time_zone_id(latitude, longitude):
+    google_client = googleC(key=keys.timeZoneGetter_server_key)
+
+    location = str(latitude) + "," + str(longitude)
+
+    result = googleTZ.timezone(google_client, location)
+
+    status = result['status']
+
+    if status == "OK":
+        time_zone_id = result['timeZoneId']
+        return time_zone_id
+    else:
+        return None
+
+
+def parse_as_tz_aware(dt_anaware, latitude, longitude):
+    dt_object = datetime.strptime(dt_anaware, '%Y-%m-%dT%H:%M:%S')
+
+    year = dt_object.year
+    month = dt_object.month
+    day = dt_object.day
+    hour = dt_object.hour
+    minute = dt_object.minute
+    second = dt_object.second
+
+    tz_id = get_time_zone_id(latitude, longitude)
+    if not tz_id:
+        return None
+
+    tz = pytz.timezone(tz_id)
+
+    dt_aware = tz.localize(datetime(year, month, day, hour, minute, second), is_dst=None)
+
+    return dt_aware
 
 
 class Artist(models.Model):
@@ -74,9 +115,7 @@ class Artist(models.Model):
     def find(artist_name):
         result = client.get(artist_name)
 
-        artist = Artist.parse_and_save_data(result)
-
-        return artist
+        return Artist.parse_and_save_data(result)
 
     def get_events_by_date(self, search_date):
         results = client.events(self.name, date=search_date)
@@ -126,8 +165,8 @@ class Venue(models.Model):
     latitude = models.FloatField(default=0, null=False)
 
     def __unicode__(self):
-        string = "Venue = %s [city:%s, latitude:%f, longitude:%f]" % (self.name, self.city,
-                                                                      self.latitude, self.longitude)
+        string = "Venue = %s [city:%s, latitude:%f, longitude:%f]" % (self.name, self.city, float(self.latitude),
+                                                                      float(self.longitude))
         return string
 
     def is_stored(self):
@@ -203,25 +242,25 @@ class Event(models.Model):
 
         if not db_event:
             event = Event()
+
             event.description = e_json_obj['description']
             event.title = e_json_obj['title']
             event.ticket_type = e_json_obj['ticket_type']
 
+            # parsing venue
             venue_json_obj = e_json_obj['venue']
             venue = Venue.parse_and_save_data(venue_json_obj)
-            # assigning venue
             event.venue = venue
 
             event.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
             event.ticket_url = e_json_obj['ticket_url']
-            event.on_sale_datetime = e_json_obj['on_sale_datetime']
+            event.on_sale_datetime = parse_as_tz_aware(e_json_obj['on_sale_datetime'], venue.latitude, venue.longitude)
             event.formatted_datetime = e_json_obj['formatted_datetime']
-            event.datetime = e_json_obj['datetime']
+            event.datetime = parse_as_tz_aware(e_json_obj['datetime'], venue.latitude, venue.longitude)
             event.formatted_location = e_json_obj['formatted_location']
             event.ticket_status = e_json_obj['ticket_status']
             event.BIT_event_id = e_json_obj['id']
 
-            # saving current instance in order to be able to realize many to many relation
             event.save()
 
             # extracting artists

@@ -1,6 +1,4 @@
-from django.shortcuts import render
 from django.http import HttpResponse
-from bandsintown import Client
 from models import Artist, Venue, Event
 from django.utils import timezone
 from datetime import timedelta
@@ -18,17 +16,15 @@ def index(request):
         a.delete()
     print "purged"
 
-    client = Client('myappid')
-    artists_names = ['Usher', 'Cage the Elephant', 'Knife Party', 'Steve Aoki', 'Lady Gaga', 'The Weeknd', 'Rihanna']
-    #artists_names = ['Rihanna']
-
-    #todo: test all methods in models
+    #artists_names = ['Usher', 'Cage the Elephant', 'Knife Party', 'Steve Aoki', 'Lady Gaga', 'The Weeknd', 'Rihanna']
+    artists_names = ['Rihanna']
 
     for name in artists_names:
         Artist.find(name)
 
+    start = timezone.now() + timedelta(days=0)
+    end = timezone.now() + timedelta(days=7)
     for a in Artist.objects.all():
-        print a
-
+        a.get_events_by_dates_range(start.date(), end.date())
 
     return HttpResponse("Hi, you are in BITdataCollector.")
