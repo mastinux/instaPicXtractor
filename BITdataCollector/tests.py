@@ -37,7 +37,7 @@ class ArtistTestCase(TestCase):
         artist = Artist.find('Madman')
         print artist.get_events_by_location_and_radius('Turin,IT', 240)
 
-    def test_location_events_search(self):
+    def test_recommended_events_search(self):
         #TEST: search recommended events by location [OK]
         artist = Artist.find('Madman')
         for e in artist.get_recommended_events_by_location('Turin,IT'):

@@ -5,11 +5,12 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.index, name='index_view'),
+    url(r'$', views.index, name='index_view'),
     # initial testing
     url(r'^search', views.search, name='search_view'),
     url(r'^popular', views.popular, name='popular_view'),
     url(r'^location', views.search_by_location, name='location_view'),
+    url(r'^test', views.test, name='test_view'),
     # maintenance
     url(r'^init_db', views.init_db),
     url(r'^update_artists', views.update_artists),

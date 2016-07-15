@@ -7,9 +7,10 @@ import time
 from django.utils.timezone import timedelta
 from datetime import timedelta as std_timedelta
 from models import *
-# BITdataCollector modules
 from BITdataCollector.bandsintown import Client
 from BITdataCollector.models import *
+from instaPicXtractor import keys
+from IdataCollector.views import Authentication
 
 # todo : integrate photo_swipe
 # http://photoswipe.com/documentation/getting-started.html
@@ -30,8 +31,8 @@ interesting_artists = ['Katy Perry', 'Hozier', 'Maroon 5', 'Coldplay',
                        'KITTENS', 'Run The Jewels', 'The Accidentals', 'Fetty Wap',  'George Ezra',
                        ]
 
-api = InstagramAPI(client_id='f72f37aa491541a79412ce319f2e061f',
-                   client_secret='7dba20c9e90b4758b558088f9422cadd')
+api = InstagramAPI(client_id=keys.INSTAGRAM_CLIENT_ID,
+                   client_secret=keys.INSTAGRAM_CLIENT_SECRET)
 
 
 def index(request):
@@ -53,10 +54,6 @@ def search(request):
 
         for m in media:
             image = {}
-            #for e in medium.__dict__:
-            #    print e
-            #for e in api.media(medium.id).__dict__:
-            #    print e
             image['image_url'] = m.images['standard_resolution'].url
 
             image_objects.append(image)
@@ -70,12 +67,12 @@ def search(request):
 def popular(request):
     image_objects = list()
 
-    media = api.media_popular(count=100)
+    media = api.media_popular(count=10)
+    for m in media:
+        print m
+
     for m in media:
         image = {}
-        #print "\n"
-        #for e in medium.__dict__:
-        #    print e
         image['image_url'] = m.images['standard_resolution'].url
 
         image_objects.append(image)
@@ -83,6 +80,7 @@ def popular(request):
     context = {
         'image_objects': image_objects,
     }
+
     return render(request, 'instaPhotoCollector/index.html', context)
 
 
@@ -105,27 +103,9 @@ def search_by_location(request):
 
         for m in media:
             image = {}
-            #print "\n"
-            #for e in medium.__dict__:
-            #    print e
-            #print m.caption
-            #print m.location
             image['location'] = m.location
-            #print m.created_time
             image['created_time'] = m.created_time
-            #print m.tags
             image['tags'] = m.tags
-            #print m.comments
-            #print m.filter
-            #print m.comment_count
-            #print m.like_count
-            #print m.link
-            #print m.likes
-            #print m.images
-            #print m.users_in_photo
-            #print m.type
-            #print m.id
-            #print m.user
             image['image_url'] = m.images['standard_resolution'].url
 
             image_objects.append(image)
@@ -164,7 +144,7 @@ def get_artists(request):
 
 
 def explore_artist(request, artist_name, page):
-    context = {}
+    context = dict()
     context['artist_name'] = artist_name
 
     artist = Artist.objects.get(name=artist_name)
@@ -423,3 +403,13 @@ def retrieve_all_events_media(request):
                             media_object.save()
 
     return render(request, 'instaPhotoCollector/index.html')
+
+
+def test(request):
+    context = {}
+
+    authentication = Authentication()
+
+    context['authorization_url'] = authentication.get_authorization_url()
+
+    return render(request, 'instaPhotoCollector/test.html', context)

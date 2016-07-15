@@ -17,6 +17,6 @@ class Media(models.Model):
 
     def __unicode__(self):
         string = "media = %s [created_time:%s, latitude:%f, longitude:%f]" % \
-                 (self.std_resolution_url, self.created_time, self.latitude, self.longitude)
+                 (self.std_resolution_url, self.created_time, float(self.latitude), float(self.longitude))
 
         return string
