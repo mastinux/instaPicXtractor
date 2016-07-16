@@ -206,7 +206,7 @@ class Venue(models.Model):
             return venue
         else:
             print 'log >>> venue already on DB'
-            return db_venue
+            return db_venue[0]
 
 
 class Event(models.Model):
@@ -249,12 +249,19 @@ class Event(models.Model):
 
             # parsing venue
             venue_json_obj = e_json_obj['venue']
+            venue = Venue()
             venue = Venue.parse_and_save_data(venue_json_obj)
             event.venue = venue
 
             event.facebook_rsvp_url = e_json_obj['facebook_rsvp_url']
             event.ticket_url = e_json_obj['ticket_url']
-            event.on_sale_datetime = parse_as_tz_aware(e_json_obj['on_sale_datetime'], venue.latitude, venue.longitude)
+
+            if (e_json_obj['on_sale_datetime']):
+                event.on_sale_datetime = parse_as_tz_aware(e_json_obj['on_sale_datetime'],
+                                                           venue.latitude, venue.longitude)
+            else:
+                event.on_sale_datetime = None
+
             event.formatted_datetime = e_json_obj['formatted_datetime']
             event.datetime = parse_as_tz_aware(e_json_obj['datetime'], venue.latitude, venue.longitude)
             event.formatted_location = e_json_obj['formatted_location']

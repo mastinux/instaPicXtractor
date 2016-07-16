@@ -1,0 +1,13 @@
+{% extends "instaPhotoCollector/base.html" %}
+
+{% block content %}
+
+    {% if code %}
+        <div class="alert alert-info" role="alert">{{ code }}</div>
+    {% endif %}
+
+    {% if msg %}
+        <div class="alert alert-success" role="alert">{{ msg }}</div>
+    {% endif %}
+
+{% endblock %}

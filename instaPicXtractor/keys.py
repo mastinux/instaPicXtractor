@@ -1,6 +1,6 @@
 # time zone API
 timeZoneGetter_server_key = "AIzaSyCOlfzjc_BvcQUekuPULiPj71IZ1QcknGM"
-INSTAGRAM_CLIENT_ID = "f72f37aa491541a79412ce319f2e061f"
-INSTAGRAM_CLIENT_SECRET = "7dba20c9e90b4758b558088f9422cadd"
-INSTAGRAM_REDIRECT_URI = "http://localhost:8000/instaphotocollector/"
+INSTAGRAM_CLIENT_ID = "bb25a94adce74c92a917a826aa80bbea"
+INSTAGRAM_CLIENT_SECRET = "134922eff7674e08917e2144207330cb"
+INSTAGRAM_REDIRECT_URI = "http://localhost:8000/instaphotocollector/test_authorized/"
 

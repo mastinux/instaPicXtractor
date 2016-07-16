@@ -11,12 +11,22 @@ from BITdataCollector.bandsintown import Client
 from BITdataCollector.models import *
 from instaPicXtractor import keys
 from IdataCollector.views import Authentication
+from ast import literal_eval
+import hmac
+from hashlib import sha256
+import urllib
+import requests
 
 # todo : integrate photo_swipe
 # http://photoswipe.com/documentation/getting-started.html
 # compiled files are in static/photo_swipe/PhotoSwipe/dist
 
 client = Client('myappid')
+
+I_API_URL = "https://api.instagram.com/v1/"
+USERS_SELF = "users/self/"
+USERS_SELF_MEDIA_RECENT = "users/self/media/recent/"
+USERS_SELF_MEDIA_LIKED = "users/self/media/liked"
 
 INIT_DAYS_FOR_LAST_ARTIST_EVENTS = 30*2
 UPDATE_DAYS_FOR_LAST_ARTIST_EVENTS = 30
@@ -33,6 +43,79 @@ interesting_artists = ['Katy Perry', 'Hozier', 'Maroon 5', 'Coldplay',
 
 api = InstagramAPI(client_id=keys.INSTAGRAM_CLIENT_ID,
                    client_secret=keys.INSTAGRAM_CLIENT_SECRET)
+
+
+def access_token_curl_request(code):
+    params = dict()
+    params['client_id'] = keys.INSTAGRAM_CLIENT_ID
+    params['client_secret'] = keys.INSTAGRAM_CLIENT_SECRET
+    params['grant_type'] = 'authorization_code'
+    params['redirect_uri'] = keys.INSTAGRAM_REDIRECT_URI
+    params['code'] = code
+    # scope=public_content
+    params['scope'] = 'public_content'
+
+    params = urllib.urlencode(params)
+    feed = urllib.urlopen("https://api.instagram.com/oauth/access_token", params)
+    oauth_token = feed.read()
+
+    return literal_eval(oauth_token)
+
+
+def generate_sig(endpoint, params, secret):
+    sig = endpoint
+    for key in sorted(params.keys()):
+        sig += '|%s=%s' % (key, params[key])
+    print sig
+    return hmac.new(secret, sig, sha256).hexdigest()
+
+
+# TODO: test again this function after being able to make proper request to the API
+# check Security tab in Edit Client from Manage Clients
+def sig_curl_request(endpoint, internal_params, access_token):
+    params = dict()
+
+    sig = generate_sig(endpoint, internal_params, keys.INSTAGRAM_CLIENT_SECRET)
+
+    params['access_token'] = access_token
+    params['sig'] = sig
+
+    params = urllib.urlencode(params)
+    feed = urllib.urlopen("https://api.instagram.com/v1" + endpoint, params)
+    result = feed.read()
+
+    return result
+
+
+def get_users_self(access_token):
+    params = dict()
+
+    params['access_token'] = access_token
+
+    response = requests.get(I_API_URL + USERS_SELF, params=params)
+
+    result = response.json()
+
+    if result['meta']['code'] != 200:
+        return None
+    else:
+        return result['data']
+
+
+# TODO: if necessary manage pagination
+def get_users_self_media_recent(access_token):
+    params = dict()
+
+    params['access_token'] = access_token
+
+    response = requests.get(I_API_URL + USERS_SELF_MEDIA_RECENT, params=params)
+
+    result = response.json()
+
+    if result['meta']['code'] != 200:
+        return None
+    else:
+        return result['data']
 
 
 def index(request):
@@ -67,6 +150,7 @@ def search(request):
 def popular(request):
     image_objects = list()
 
+    """
     media = api.media_popular(count=10)
     for m in media:
         print m
@@ -76,7 +160,7 @@ def popular(request):
         image['image_url'] = m.images['standard_resolution'].url
 
         image_objects.append(image)
-
+    """
     context = {
         'image_objects': image_objects,
     }
@@ -86,6 +170,7 @@ def popular(request):
 
 def search_by_location(request):
     context = {}
+
     if request.method == 'POST':
         image_objects = list()
 
@@ -113,6 +198,7 @@ def search_by_location(request):
         context = {
             'image_objects': image_objects
         }
+
     return render(request, 'instaPhotoCollector/index.html', context)
 
 
@@ -230,7 +316,7 @@ def explore_event(request, event_id, page):
 
     event = Event.objects.get(id=event_id)
 
-    # fixme :   instagram query search for given date and place by our time zone, make time zone aware
+    # fixme : instagram query search for given date and place by our time zone, make time zone aware
 
     event_medias = Media.objects.filter(event=event_id)
 
@@ -409,7 +495,115 @@ def test(request):
     context = {}
 
     authentication = Authentication()
-
     context['authorization_url'] = authentication.get_authorization_url()
 
     return render(request, 'instaPhotoCollector/test.html', context)
+
+
+def test_2(request):
+    context = {}
+
+    error = request.GET.get('error', '')
+    error_reason = request.GET.get('error_reason', '')
+    error_description = request.GET.get('error_description', '')
+
+    if error == "access_denied":
+        context['msg'] = "You denied the authorization to our application."
+
+        authentication = Authentication()
+        context['authorization_url'] = authentication.get_authorization_url()
+
+        return render(request, 'instaPhotoCollector/test.html', context)
+
+    code = request.GET.get('code', '')
+
+    oauth_token = access_token_curl_request(code)
+
+    #"""
+    access_token = oauth_token["access_token"]
+    """
+    user_username = oauth_token['user']['username']
+    user_bio = oauth_token['user']['bio']
+    user_website = oauth_token['user']['website']
+    user_profile_picture = oauth_token['user']['profile_picture']
+    user_full_name = oauth_token['user']['full_name']
+    user_id = oauth_token['user']['id']
+    """
+
+    """
+    print access_token
+    print user_username
+    print user_bio
+    print user_website
+    print user_profile_picture
+    print user_full_name
+    print user_id
+    #"""
+
+    # result = get_users_self(access_token)
+
+    """
+    user_counts = result['counts']
+    user_media = user_counts['media']
+    user_followed_by = user_counts['followed_by']
+    user_follows = user_counts['follows']
+    #"""
+    """
+    print user_media
+    print user_followed_by
+    print user_follows
+    #"""
+
+    # results = get_users_self_media_recent(access_token)
+
+    """
+    for image_object in results:
+        print
+        # print image_object
+        user_has_liked = image_object['user_has_liked']
+        attribution = image_object['attribution']
+        tags = image_object['tags']
+        user_object = image_object['user']
+        comments_count = image_object['comments']['count']
+        filter = image_object['filter']
+        images = image_object['images']
+        # 320 x 320
+        low_resolution_url = images['low_resolution']['url']
+        # 150 x 150
+        thumbnail_url = images['thumbnail']['url']
+        # 640 x 640
+        standard_resolution_url = images['standard_resolution']['url']
+        link = image_object['link']
+        location = image_object['location']
+        created_time = image_object['created_time']
+        users_in_photo = image_object['users_in_photo']
+        caption = image_object['caption']
+        type = image_object['type']
+        id = image_object['id']
+        likes_count = image_object['likes']['count']
+    #"""
+    """
+        print user_has_liked
+        print attribution
+        for tag in tags:
+            print tag
+        print user_object
+        print comments_count
+        print filter
+        # print images
+        print low_resolution_url
+        print thumbnail_url
+        print standard_resolution_url
+        print link
+        print location
+        print created_time
+        print users_in_photo
+        print caption
+        print type
+        print id
+        print likes_count
+    #"""
+
+    context['msg'] = "Access token get."
+
+    return render(request, 'instaPhotoCollector/test_authorized.html', context)
