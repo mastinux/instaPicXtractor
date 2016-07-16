@@ -5,6 +5,7 @@ from datetime import timedelta
 
 
 def index(request):
+    #"""
     print "purging"
     for e in Event.objects.all():
         e.delete()
@@ -15,9 +16,9 @@ def index(request):
     for a in Artist.objects.all():
         a.delete()
     print "purged"
-
-    #artists_names = ['Usher', 'Cage the Elephant', 'Knife Party', 'Steve Aoki', 'Lady Gaga', 'The Weeknd', 'Rihanna']
-    artists_names = ['Rihanna']
+    #"""
+    artists_names = ['Usher', 'Cage the Elephant', 'Knife Party', 'Steve Aoki', 'Lady Gaga', 'The Weeknd', 'Rihanna']
+    # artists_names = ['Rihanna']
 
     for name in artists_names:
         Artist.find(name)
