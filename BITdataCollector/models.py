@@ -6,6 +6,7 @@ from .bandsintown import Client
 from instaPhotoCollector.models import *
 from googlemaps import Client as googleC, timezone as googleTZ
 from instaPicXtractor import keys
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 client = client = Client('myappid')
 # https://github.com/jolbyandfriends/python-bandsintown
@@ -128,31 +129,35 @@ class Artist(models.Model):
 
         return parse_and_save_events(results)
 
-    def get_events_by_location(self, location_name):
-        results = client.search(self.name, location=location_name)
+    def get_events_by_location(self, location):
+        results = client.search(self.name, location=location)
 
         return parse_and_save_events(results)
 
-    def get_events_by_location_and_radius(self, location_name, radius):
+    def get_events_by_location_and_radius(self, location, radius):
         # maximum radius value : 241 km (150 miles)
         if radius > 241:
             radius = 241
-        results = client.search(self.name, location=location_name, radius=radius*0.621371)
+        results = client.search(self.name, location=location, radius=radius*0.621371)
 
         return parse_and_save_events(results)
 
     def get_recommended_events_by_location(self, location):
         results = client.recommended(self.name, location=location, only_recs=True)
 
-        return parse_and_save_events(results)
+        parsed_and_saved_events = parse_and_save_events(results)
 
-    def get_recommended_events_by_location_and_radius(self, location_name, radius):
+        return parsed_and_saved_events
+
+    def get_recommended_events_by_location_and_radius(self, location, radius):
         # maximum radius value : 241 km (150 miles)
         if radius > 241:
             radius = 241
-        results = client.recommended(self.name, location=location_name, radius=radius*0.621371)
+        results = client.recommended(self.name, location=location, radius=radius*0.621371)
 
-        return parse_and_save_events(results)
+        parsed_and_saved_events = parse_and_save_events(results)
+
+        return parsed_and_saved_events
 
 
 class Venue(models.Model):
@@ -302,7 +307,13 @@ class Event(models.Model):
             return event
         else:
             print 'log >>> event already on DB'
-            return db_event
+            return db_event[0]
 
     def get_media_count(self):
         return Media.objects.filter(event=self.id).count()
+
+
+class RecommendedEvents(models.Model):
+    event = models.ForeignKey(Event, related_name='main_event')
+    radius = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(241)])
+    events = models.ManyToManyField(Event, related_name='recommended_events')

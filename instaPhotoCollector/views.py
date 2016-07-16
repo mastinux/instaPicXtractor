@@ -234,11 +234,11 @@ def explore_artist(request, artist_name, page):
     context['artist_name'] = artist_name
 
     artist = Artist.objects.get(name=artist_name)
-
+    """
     end = timezone.now()
     start = end - timedelta(days=DAYS_FOR_LAST_ARTIST_EVENTS)
     artist.get_events_by_dates_range(start.date(), end.date())
-
+    """
     db_artist_events = artist.event_set.filter(datetime__lt=timezone.now()).order_by('-datetime')
 
     number_of_element = db_artist_events.count()
